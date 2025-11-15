@@ -24,6 +24,19 @@ export default function ContactList() {
     loadContacts();
   }, []);
 
+  // ⭐ Toggle Favorite
+  const toggleFavorite = async (id: number, current: number = 0) => {
+    const newValue = current === 1 ? 0 : 1;
+
+    await db.runAsync(
+      "UPDATE contacts SET favorite = ? WHERE id = ?",
+      newValue,
+      id
+    );
+
+    loadContacts(); // Refresh UI
+  };
+
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.addBtn} onPress={() => setOpenModal(true)}>
@@ -43,10 +56,12 @@ export default function ContactList() {
                 <Text style={styles.phone}>{item.phone}</Text>
               </View>
 
-              {/* ⭐ = favorite 1 , ☆ = favorite 0 */}
-              <Text style={styles.star}>
-                {item.favorite === 1 ? "⭐" : "☆"}
-              </Text>
+              {/* ⭐ Toggle Favorite */}
+              <TouchableOpacity onPress={() => toggleFavorite(item.id, item.favorite)}>
+                <Text style={styles.star}>
+                  {item.favorite === 1 ? "⭐" : "☆"}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
         />
@@ -73,7 +88,7 @@ const styles = StyleSheet.create({
   },
   name: { fontSize: 18, fontWeight: "bold" },
   phone: { fontSize: 14, color: "#555" },
-  star: { fontSize: 22, marginLeft: 10 },
+  star: { fontSize: 28, marginLeft: 10 },
   addBtn: {
     position: "absolute",
     right: 15,
