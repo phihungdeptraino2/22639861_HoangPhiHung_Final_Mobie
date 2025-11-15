@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, TextInput, Switch } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, TextInput, Switch, ActivityIndicator } from "react-native";
 import { db } from "../db";
 import ContactModal from "../components/ContactModal";
 
@@ -18,6 +18,9 @@ export default function ContactList() {
 
   const [searchText, setSearchText] = useState("");
   const [showFavoriteOnly, setShowFavoriteOnly] = useState(false);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadContacts = async () => {
     const rows = await db.getAllAsync<Contact>("SELECT * FROM contacts ORDER BY id DESC");
@@ -54,7 +57,7 @@ export default function ContactList() {
     );
   };
 
-  // 🔹 Filter contacts bằng useMemo để realtime và tối ưu
+  // 🔹 Filter contacts
   const filteredContacts = useMemo(() => {
     return contacts.filter(c => {
       const matchesSearch =
@@ -64,6 +67,37 @@ export default function ContactList() {
       return matchesSearch && matchesFavorite;
     });
   }, [contacts, searchText, showFavoriteOnly]);
+
+  // 🔹 Import contacts từ API
+  const importContactsFromAPI = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("https://6918486921a96359486f90aa.mockapi.io/dt"); // Thay bằng API thật
+      if (!response.ok) throw new Error("Network response was not ok");
+      const data: { name: string; phone: string; email?: string }[] = await response.json();
+
+      for (const item of data) {
+        // Kiểm tra trùng phone
+        const exists = contacts.find(c => c.phone === item.phone);
+        if (!exists) {
+          await db.runAsync(
+            "INSERT INTO contacts (name, phone, email, created_at) VALUES (?, ?, ?, ?)",
+            item.name,
+            item.phone,
+            item.email || "",
+            Date.now()
+          );
+        }
+      }
+
+      await loadContacts();
+    } catch (err: any) {
+      setError(err.message || "Lỗi import contact");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -80,6 +114,14 @@ export default function ContactList() {
         <Text>Chỉ hiển thị favorite</Text>
         <Switch value={showFavoriteOnly} onValueChange={setShowFavoriteOnly} />
       </View>
+
+      {/* Import Button */}
+      <TouchableOpacity style={styles.importBtn} onPress={importContactsFromAPI} disabled={loading}>
+        <Text style={{ color: "white", fontWeight: "bold" }}>Import từ API</Text>
+      </TouchableOpacity>
+
+      {loading && <ActivityIndicator size="large" color="#2196f3" style={{ marginVertical: 10 }} />}
+      {error && <Text style={{ color: "red", marginBottom: 10 }}>{error}</Text>}
 
       <TouchableOpacity style={styles.addBtn} onPress={() => { setEditingContact(null); setOpenModal(true); }}>
         <Text style={styles.addText}>＋</Text>
@@ -125,20 +167,27 @@ export default function ContactList() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 60 }, // tăng paddingTop cho iPhone
+  container: { flex: 1, padding: 20, paddingTop: 60 },
   searchInput: {
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 8,
     padding: 10,
     marginBottom: 10,
-    marginTop: 10, // thêm khoảng cách trên
+    marginTop: 10,
   },
   favoriteFilter: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
     justifyContent: "space-between"
+  },
+  importBtn: {
+    backgroundColor: "#4caf50",
+    padding: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 10
   },
   empty: { textAlign: "center", marginTop: 40, fontSize: 16 },
   item: { 
