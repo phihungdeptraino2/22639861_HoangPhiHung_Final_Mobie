@@ -57,7 +57,7 @@ export default function ContactModal({ visible, onClose, onSaved }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, marginTop: 50 },
+  container: { flex: 1, padding: 20, marginTop: 48 },
   title: { fontSize: 22, fontWeight: "bold", marginBottom: 20 },
   input: {
     borderWidth: 1, borderColor: "#ccc", padding: 12,
