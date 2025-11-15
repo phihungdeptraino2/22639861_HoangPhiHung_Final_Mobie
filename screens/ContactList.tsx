@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { db } from "../db";
 import ContactModal from "../components/ContactModal";
 
@@ -25,10 +25,30 @@ export default function ContactList() {
     loadContacts();
   }, []);
 
+  // Toggle favorite
   const toggleFavorite = async (id: number, current: number = 0) => {
     const newValue = current === 1 ? 0 : 1;
     await db.runAsync("UPDATE contacts SET favorite = ? WHERE id = ?", newValue, id);
     loadContacts();
+  };
+
+  // 🔹 Xóa contact với xác nhận
+  const deleteContact = (contact: Contact) => {
+    Alert.alert(
+      "Xác nhận xóa",
+      `Bạn có chắc muốn xóa liên hệ "${contact.name}"?`,
+      [
+        { text: "Hủy", style: "cancel" },
+        { 
+          text: "Xóa", 
+          style: "destructive",
+          onPress: async () => {
+            await db.runAsync("DELETE FROM contacts WHERE id=?", contact.id);
+            loadContacts();
+          }
+        },
+      ]
+    );
   };
 
   return (
@@ -56,6 +76,10 @@ export default function ContactList() {
 
               <TouchableOpacity onPress={() => { setEditingContact(item); setOpenModal(true); }}>
                 <Text style={{ marginLeft: 10, color: "#2196f3" }}>Sửa</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => deleteContact(item)}>
+                <Text style={{ marginLeft: 10, color: "red" }}>Xóa</Text>
               </TouchableOpacity>
             </View>
           )}
