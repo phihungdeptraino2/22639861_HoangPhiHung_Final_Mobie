@@ -38,15 +38,20 @@ export default function ContactList() {
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <View style={styles.item}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.phone}>{item.phone}</Text>
-              {item.favorite === 1 && <Text>⭐</Text>}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.phone}>{item.phone}</Text>
+              </View>
+
+              {/* ⭐ = favorite 1 , ☆ = favorite 0 */}
+              <Text style={styles.star}>
+                {item.favorite === 1 ? "⭐" : "☆"}
+              </Text>
             </View>
           )}
         />
       )}
 
-      {/* Modal thêm */}
       <ContactModal
         visible={openModal}
         onClose={() => setOpenModal(false)}
@@ -59,9 +64,16 @@ export default function ContactList() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
   empty: { textAlign: "center", marginTop: 40, fontSize: 16 },
-  item: { padding: 15, borderBottomWidth: 1, borderColor: "#ddd" },
+  item: { 
+    padding: 15, 
+    borderBottomWidth: 1, 
+    borderColor: "#ddd",
+    flexDirection: "row",
+    alignItems: "center"
+  },
   name: { fontSize: 18, fontWeight: "bold" },
   phone: { fontSize: 14, color: "#555" },
+  star: { fontSize: 22, marginLeft: 10 },
   addBtn: {
     position: "absolute",
     right: 15,
