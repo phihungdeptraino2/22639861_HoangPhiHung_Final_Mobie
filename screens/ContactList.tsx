@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { useEffect, useState, useMemo } from "react";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, TextInput, Switch } from "react-native";
 import { db } from "../db";
 import ContactModal from "../components/ContactModal";
 
@@ -15,6 +15,9 @@ export default function ContactList() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [openModal, setOpenModal] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+
+  const [searchText, setSearchText] = useState("");
+  const [showFavoriteOnly, setShowFavoriteOnly] = useState(false);
 
   const loadContacts = async () => {
     const rows = await db.getAllAsync<Contact>("SELECT * FROM contacts ORDER BY id DESC");
@@ -32,7 +35,7 @@ export default function ContactList() {
     loadContacts();
   };
 
-  // 🔹 Xóa contact với xác nhận
+  // Delete contact
   const deleteContact = (contact: Contact) => {
     Alert.alert(
       "Xác nhận xóa",
@@ -51,17 +54,42 @@ export default function ContactList() {
     );
   };
 
+  // 🔹 Filter contacts bằng useMemo để realtime và tối ưu
+  const filteredContacts = useMemo(() => {
+    return contacts.filter(c => {
+      const matchesSearch =
+        c.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        c.phone.includes(searchText);
+      const matchesFavorite = showFavoriteOnly ? c.favorite === 1 : true;
+      return matchesSearch && matchesFavorite;
+    });
+  }, [contacts, searchText, showFavoriteOnly]);
+
   return (
     <View style={styles.container}>
+      {/* Search Input */}
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Tìm theo tên hoặc số điện thoại..."
+        value={searchText}
+        onChangeText={setSearchText}
+      />
+
+      {/* Favorite Filter */}
+      <View style={styles.favoriteFilter}>
+        <Text>Chỉ hiển thị favorite</Text>
+        <Switch value={showFavoriteOnly} onValueChange={setShowFavoriteOnly} />
+      </View>
+
       <TouchableOpacity style={styles.addBtn} onPress={() => { setEditingContact(null); setOpenModal(true); }}>
         <Text style={styles.addText}>＋</Text>
       </TouchableOpacity>
 
-      {contacts.length === 0 ? (
+      {filteredContacts.length === 0 ? (
         <Text style={styles.empty}>Chưa có liên hệ nào.</Text>
       ) : (
         <FlatList
-          data={contacts}
+          data={filteredContacts}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <View style={styles.item}>
@@ -97,7 +125,21 @@ export default function ContactList() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
+  container: { flex: 1, padding: 20, paddingTop: 60 }, // tăng paddingTop cho iPhone
+  searchInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    marginTop: 10, // thêm khoảng cách trên
+  },
+  favoriteFilter: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+    justifyContent: "space-between"
+  },
   empty: { textAlign: "center", marginTop: 40, fontSize: 16 },
   item: { 
     padding: 15, 
