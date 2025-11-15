@@ -14,6 +14,7 @@ type Contact = {
 export default function ContactList() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [openModal, setOpenModal] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
 
   const loadContacts = async () => {
     const rows = await db.getAllAsync<Contact>("SELECT * FROM contacts ORDER BY id DESC");
@@ -24,22 +25,15 @@ export default function ContactList() {
     loadContacts();
   }, []);
 
-  // ⭐ Toggle Favorite
   const toggleFavorite = async (id: number, current: number = 0) => {
     const newValue = current === 1 ? 0 : 1;
-
-    await db.runAsync(
-      "UPDATE contacts SET favorite = ? WHERE id = ?",
-      newValue,
-      id
-    );
-
-    loadContacts(); // Refresh UI
+    await db.runAsync("UPDATE contacts SET favorite = ? WHERE id = ?", newValue, id);
+    loadContacts();
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.addBtn} onPress={() => setOpenModal(true)}>
+      <TouchableOpacity style={styles.addBtn} onPress={() => { setEditingContact(null); setOpenModal(true); }}>
         <Text style={styles.addText}>＋</Text>
       </TouchableOpacity>
 
@@ -56,11 +50,12 @@ export default function ContactList() {
                 <Text style={styles.phone}>{item.phone}</Text>
               </View>
 
-              {/* ⭐ Toggle Favorite */}
               <TouchableOpacity onPress={() => toggleFavorite(item.id, item.favorite)}>
-                <Text style={styles.star}>
-                  {item.favorite === 1 ? "⭐" : "☆"}
-                </Text>
+                <Text style={styles.star}>{item.favorite === 1 ? "⭐" : "☆"}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => { setEditingContact(item); setOpenModal(true); }}>
+                <Text style={{ marginLeft: 10, color: "#2196f3" }}>Sửa</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -71,6 +66,7 @@ export default function ContactList() {
         visible={openModal}
         onClose={() => setOpenModal(false)}
         onSaved={loadContacts}
+        contact={editingContact || undefined}
       />
     </View>
   );
